@@ -25,8 +25,8 @@ def get_contacts(players_db_f, opponents):
 			row, col = xls_search_player(players_sh,
 				name, prefix)
 			contacts.append(
-				[players_sh.cell(row, col + 1).value,
-				name,
+				[name,
+				players_sh.cell(row, col + 1).value,
 				players_sh.cell(row, col + 5).value,
 				players_sh.cell(row, col + 4).value,
 				players_sh.cell(row, col + 2).value,
@@ -124,7 +124,7 @@ def parse_cmd_line():
 		metavar='LEAGUE_DB',
 		type=FileType(mode='rb'))
 	parser.add_argument('players_db',
-		default='Rangliste Adressen.xls',
+		default='KA Rangliste Adressen.xls',
 		help='File containing the database of players in ' + \
 			'XLS file format. Defaults to "%(default)s".',
 		metavar='PLAYERS_DB',
@@ -214,7 +214,11 @@ if __name__ == '__main__':
 	# Display obtained data:
 	print('In this season you play in group %s.\n' % group)
 	print('Your opponents are as follows:')
-	print('Last name, first name \t Mobile \t Work \t Home \t E-Mail')
+	print('Last name, first name \t E-Mail \t Mobile \t Work \t Home')
 	for c in contacts:
-		print('%s, %s \t %s \t %s \t %s \t %s' % c)
+		print('%s, %s \t %s \t %s \t %s \t %s' % tuple(c))
 
+	# Print email addresses:
+	print('\nEmail addresses for copy-pasting:')
+	for c in contacts:
+		print('"%s %s" <%s>' % (c[1], c[0], c[2]))
