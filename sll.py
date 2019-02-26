@@ -1,12 +1,31 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
+def create_email(group, opponents):
+	'''Given the group and the list of opponents return an
+	email.message.
+	'''
+
+	from email.message import EmailMessage
+
+	msg = EmailMessage()
+	msg['From'] = Address("Leonid Chaichenets", "leonid.chaichenets",
+		"googlemail.com")
+
+	body_template = 'Moin zusammen,\n\nes scheint, dass wir fünf in' +
+		'der Gruppe {} der Freizeitliga gelandet sind. Gerne ' +
+		'würde ich gegen Euch jeweils ein Spiel ausmachen. ' +
+		'Wie sieht es bei Euch dienstags bis donnerstags so ' +
+		'ab 19:00 aus?\n\nViele Grüße\nLeo'
+
+	
+
+
 def get_contacts(players_db_f, opponents):
 	'''Given the open XLS file players_db and the list of opponents,
 	obtain the contact details (phone numbers and email address) of
-	the opponenets. Sort the phone numbers by reachability, i.e.
-	mobile < home < office < empty. Return a list of pairs (first
-	name, last name, email, phone_0, phone_1, phone_2).
+	the opponenets. Return a list of pairs (first name, last name,
+	email, phone_0, phone_1, phone_2).
 	'''
 
 	# Squash Center Karlsruhe still uses the old format.
@@ -34,7 +53,6 @@ def get_contacts(players_db_f, opponents):
 			)
 
        	return contacts
-
 
 def get_group_opponents(league_db_f, player):
 	'''Given the open XLS file league_db_f and player’s name player,
@@ -77,7 +95,6 @@ def get_group_opponents(league_db_f, player):
 				opponents.append(league_sh.cell(i, col).value)
 
 	return (group, opponents)
-
 
 def parse_player_name(player_name):
 	'''Split the string player_name into a string consisting of
