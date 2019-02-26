@@ -1,25 +1,37 @@
 #!/usr/bin/python
 # -*- coding: utf-8 -*-
 
-def create_email(group, opponents):
-	'''Given the group and the list of opponents return an
-	email.message.
+def create_email(group, opponents, orig_id = None):
+	'''Given the group name and the list of opponents return an
+	email.message msg. Optionally, provide the mail id of the
+	original message to make msg a reply.
 	'''
 
 	from email.message import EmailMessage
-
 	msg = EmailMessage()
-	msg['From'] = Address("Leonid Chaichenets", "leonid.chaichenets",
-		"googlemail.com")
+	msg['From'] = 'Leonid Chaichenets <leonid.chaichenets@googlemail.com>'
 
-	body_template = 'Moin zusammen,\n\nes scheint, dass wir fünf in' +
-		'der Gruppe {} der Freizeitliga gelandet sind. Gerne ' +
-		'würde ich gegen Euch jeweils ein Spiel ausmachen. ' +
-		'Wie sieht es bei Euch dienstags bis donnerstags so ' +
-		'ab 19:00 aus?\n\nViele Grüße\nLeo'
+	msg['To'] = ['{} {} <{}>'.format(c[1], c[0], c[2]) for c in opponents]
 
-	
+	if orig_id:
+		msg['References'] = orig_id
+		msg['In-Reply-To'] = orig_id
 
+	subject_template = 'Squash-Freizeitliga'
+	if orig_id:
+		msg['Subject'] = ': '.join(['Re', subject_template])
+	else:
+		msg['Subject'] = subject_template
+
+	body_template = ('Moin zusammen,\n\nes scheint, dass wir fünf '
+		'in der Gruppe {} der Freizeitliga gelandet sind. Gerne '
+		'würde ich gegen Euch jeweils ein Spiel ausmachen. '
+		'Wie sieht es bei Euch dienstags bis donnerstags so '
+		'ab 19:00 aus?\n\nViele Grüße\nLeo')
+
+	msg.set_content(body_template.format(group))
+
+	return msg
 
 def get_contacts(players_db_f, opponents):
 	'''Given the open XLS file players_db and the list of opponents,
@@ -39,7 +51,7 @@ def get_contacts(players_db_f, opponents):
 		players_sh = players_wb.sheet_by_index(0)
 
 		contacts = []
-	        for o in opponents:
+		for o in opponents:
 			name, prefix = parse_player_name(o)
 			row, col = xls_search_player(players_sh,
 				name, prefix)
@@ -52,7 +64,7 @@ def get_contacts(players_db_f, opponents):
 				players_sh.cell(row, col + 3).value]
 			)
 
-       	return contacts
+	return contacts
 
 def get_group_opponents(league_db_f, player):
 	'''Given the open XLS file league_db_f and player’s name player,
@@ -72,14 +84,7 @@ def get_group_opponents(league_db_f, player):
 		league_sh = league_wb.sheet_by_index(0)
 
 		# Get coordinates of the cell containing player’s name:
-		matches = xls_search_str(league_sh, player)
-		if len(matches) == 0:
-			raise ValueError('Player "%s" not found in the ' +
-				'database.' % player)
-		if len(matches) >= 2:
-			raise ValueError('More than one player "%s" '
-				'found in the database.' % player)
-		row, col = matches[0]
+		row, col = unique(xls_search_str(league_sh, player))
 
 		# Get vertical bounds of the group of the player:
 		row_low, row_high = xls_find_table_borders(league_sh, row, col)
@@ -102,15 +107,17 @@ def parse_player_name(player_name):
 	player’s first name, remove punctuation and return this pair
 	(last_name, first_name_prefix).
 
-	For example 'Meyer M.' => ['Meyer', 'M'],
-	'Meyer Th' => ['Meyer', 'Th'] or 'Meyer' => ['Meyer', ''].
+	Examples:
+	parse_player_name('Meyer M.') == ['Meyer', 'M']
+	parse_player_name('Meyer Th') == ['Meyer', 'Th']
+	parse_player_name('Meyer') == ['Meyer', '']
 	'''
 
 	split_string = player_name.split()
 
 	if len(split_string) == 0:
 		return ('', '')
-        if len(split_string) == 1:
+	if len(split_string) == 1:
 		return (split_string[0], '')
 	if len(split_string) > 2:
 		raise ValueError('"%s" is not a valid player name.' % player_name)
@@ -122,7 +129,7 @@ def parse_player_name(player_name):
 def parse_cmd_line():
 	''' Parse command line arguments to get the player name and
 	files containing the league database and players database.
-	Return an instante of argparse.Namespace containing these
+	Return an instance of argparse.Namespace containing these
 	arguments.
 	'''
 
@@ -149,6 +156,17 @@ def parse_cmd_line():
 		type=FileType(mode='rb'))
 
 	return parser.parse_args()
+
+def unique(l):
+	'''Given a list l, return its one and only element. If the list
+	l has no elements or more than one element, raise a LookupError.
+	'''
+	if len(l) == 1:
+		return l[0]
+	if len(l) == 0:
+		raise LookupError('List is empty.')
+	else:
+		raise LookupError('List has more than one element.')
 
 def xls_find_table_borders(xls_sheet, row, col):
 	u'''Search in the XLS sheet xls_sheet for the boundary entries
@@ -227,11 +245,12 @@ if __name__ == '__main__':
 
 	# Get the opponents’ contacts:
 	contacts = get_contacts(args.players_db, opponents)
+	contacts.sort()
 
 	# Display obtained data:
 	print('In this season you play in group %s.\n' % group)
 	print('Your opponents are as follows:')
-	print('Last name, first name \t E-Mail \t Mobile \t Work \t Home')
+	print('Last name, First name \t E-Mail \t Mobile \t Work \t Home')
 	for c in contacts:
 		print('%s, %s \t %s \t %s \t %s \t %s' % tuple(c))
 
